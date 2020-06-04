@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+    div.padded {
+      padding-top: 0px;
+      padding-right: 100px;
+      padding-bottom: 0.25in;
+      padding-left: 100px;
+    }
+  </style>
+<title>Nico Deshler  |  CS 184</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+<body>
+<br />
+<h1 align="middle">Assignment 3-2: PathTracer</h1>
+    <h2 align="middle">Nico Deshler</h2>
+
+    <div class="padded">
+      <p>
+        <em> OVERVIEW:</em>
+      </p>
+      <p>
+        In this project I extend the capabilities of my ray-tracer from project 3-1 by expanding the number of BSDFs avaialble for modelling light interaction with different materials. Specifically, I completed Parts 1 and 2 of the assignment which implement specular reflection, refraction, and microfacet materials. These extensions enhanced my understanding of BSDFs and the physics of light interaction with transmissive materials. Moreover, it helped me recognize the power of importance sampling, particularly for rendering microfacet materials without requiring an exorbitant number of ray samples. An interesting direction this project could take in the future is modelling ray interaction with gradient index materials (i.e. transmissive materials with spatially-varying refractive indices) which could lead to interesting non-linear light paths.
+      </p>
+    <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+        <p> The reflection and refraction ray-tracing functions for mirror and glass materials were grounded in physics and made use of The Law of Reflection, a generalized Snell's Law, and the Schlick Approximation for the Fresnel Equations. One interesting technical detail regarding the implementation was how partial reflection and partial refraction at a transmissive surface were modelled. Physically, when radiation is incident on transmissive surface, some percentage of the energy is reflected and the remaining percentage is refracted according to the Fresnel Equations. Rather than instantiate two rays with different radiance properties (i.e. one that reflects and one that refracts), we use a probablisitic approach. In essence, we flip a weighted coin whose bias depends on the reflection coefficient and choose whether to have the ray reflect or refract. The final render is simply an aggregate of each sample trial.
+
+           Below are a series of renders with different maximal ray depths that illustrate which features arrise from each bounce.
+<ul>
+  <li>
+    The single-bounce render amounts to direct illumination. Thus, in the left specular sphere we see only the area light source reflected as rays incident on the sphere coming from other points in the scene constitute ray paths with more than one bounce. We can also see on the right transmissive sphere that the reflected area-light is dimmer and noisier. This can be explained by recalling the probablistic approach described previously for how partial reflection and refraction dictated by the Fresnel reflection is approximated here.
+  </li>
+  <li>
+    In the two-bounce render we see the diffusive elements of the scene reflected in the specular sphere on the left. Interestingly, the right transmissive sphere, as seen in the reflection of the left sphere, appears black while the right sphere itself appears cloudy yet reflective. This is because any ray paths going from the diffusive surroundings, reflecting off of the right sphere, and subsequently reflecting off the left sphere are 3-bounce ray paths.
+  </li>
+  <li>
+    In the three-bounce render, we see a more accurate representation of the right transmissive sphere in the reflection of the left sphere. We also observe a bright spot below the transmissive sphere where the refracted rays from the area light source have concentrated and reached the ground. Finally, we observe a warped portion of the blue wall (inverted horizontally and vertically as is characteristic of refractive glass spheres)  through the right sphere.
+  </li>
+  <li>
+    The most salient new feature in the four-bounce render is the bright spot on the blue wall. This feature is the image of the area light source coming from the specular reflection of the left sphere.
+  </li>
+</ul>
+It is important to conduct this analysis as it illustrates that the ray depth required to capture the most salient features of the scene is entirely dependent on the number of transmissive and reflective objects in the scene.
+ </p>
+
+
+  <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="./images/Part1/spheres_BSDFS_depth1.png" width="450px" />
+            <figcaption align="middle">Ray depth 1</figcaption>
+          </td>
+          <td align="middle">
+            <img src="./images/Part1/spheres_BSDFS_depth2.png" width="450px" />
+            <figcaption align="middle">Ray depth 2</figcaption>
+          </td>
+          <td align="middle">
+            <img src="./images/Part1/spheres_BSDFS_depth3.png" width="450px" />
+            <figcaption align="middle">Ray depth 3</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="./images/Part1/spheres_BSDFS_depth4.png" width="450px" />
+            <figcaption align="middle">Ray depth 4</figcaption>
+          </td>
+          <td align="middle">
+            <img src="./images/Part1/spheres_BSDFS_depth5.png" width="450px" />
+            <figcaption align="middle">Ray depth 5</figcaption>
+          </td>
+          <td align="middle">
+            <img src="./images/Part1/spheres_BSDFS_depth100.png" width="450px" />
+            <figcaption align="middle">Ray depth 100</figcaption>
+          </td>
+        </tr>
+      </table>
+  </div>
+
+
+  <h2 align="middle">Part 2: Microfacet Materials</h2>
+  <h3> Microfacet Roughness:</h3>
+      <p> In part 2, I implemented a BSDF and importance sampler for microfacet materials. These surfaces are more complicated to render efficiently as the surface normals are described probablistically in order to generate the non-smooth characteristics of microfacet materials. We take the microfacets to be perfectly specular reflectors and define the distribution of half-vectors to follow the Beckmann Distribution. This distribution contains a tunable roughness parameter &alpha; which spreads out the distribution as it approaches 1 and narrows the distribution as it approaches 0. The sequence of golden dragon renders below demonstrates the variety of surface characteristics achievable by changing the roughness parameter. Observing the dragon images from left to right, we can see that increasing the roughness parameter eliminates glossiness attributed to smooth specular surface and yields an appearance resembling scratched-metal.
+      </p>
+
+      <div align="center">
+          <table style="width=100%">
+            <tr>
+              <td align="middle">
+                <img src="./images/Part2/dragon_mfacet_au_0.005alpha.png" width="350px" />
+                <figcaption align="middle">alpha: 0.005</figcaption>
+              </td>
+              <td align="middle">
+                <img src="./images/Part2/dragon_mfacet_au_0.05alpha.png" width="350px" />
+                <figcaption align="middle">alpha: 0.05</figcaption>
+              </td>
+              <td align="middle">
+                <img src="./images/Part2/dragon_mfacet_au_0.25alpha.png" width="350px" />
+                <figcaption align="middle">alpha: 0.25</figcaption>
+              </td>
+              <td align="middle">
+                <img src="./images/Part2/dragon_mfacet_au_0.5alpha.png" width="350px" />
+                <figcaption align="middle">alpha: 0.5</figcaption>
+              </td>
+            </tr>
+          </table>
+      </div>
+
+<h3> Microfacet Importance Sampling:</h3>
+<p>
+Implementing importance sampling for the microfacet BSDF required sampling a half-vector according to the Beckmann Distribution. This was achieved by first sampling the zenith and azimuth angles of the half-vector individually. These angles were sampled from PDFs which, when multiplied together to form a joint probability, resemble the Beckmann Distribution. The value of importance sampling is made evident in the renders of the bunny below. As we can see, there is much more noise in the image under the cosine hemisphere sampling regime than the importance sampling regime. This is because incoming rays sampled from the cosine hemisphere sampling distribution (following the inverse ray path) are less likely to satisfy the reflection equation for a given half-vector than with the importance sampling scheme. The renders shown below were conducted with 64 samples/pixel, 1 sample/light, and a ray-depth of 5.
+</p>
+
+      <div align="center">
+          <table style="width=100%">
+            <tr>
+              <td align="middle">
+                <img src="./images/Part2/CBbunny_hemisphere.png" width="500px" />
+                <figcaption align="middle">Copper Bunny with Cosine Hemisphere Sampling</figcaption>
+              </td>
+              <td align="middle">
+                <img src="./images/Part2/CBbunny_importance.png" width="500px" />
+                <figcaption align="middle">Copper Bunny with Importance Sampling</figcaption>
+              </td>
+            </tr>
+          </table>
+      </div>
+
+
+  <h3> Fresnel Terms for Unique Materials:</h3>
+<p>
+  Using tabulated empirical data on the refractive index and the extinction coefficient of different materials, the &eta; and k values corresponding to the wavelengths of each RGB color channel can be selected to approximate the Fresnel term of the material. In the multifacet dragon render below I set the roughness parameter &alpha; to 0.5 and used the optical properties of Calcium:
+<ul>
+  <li>
+    &eta;  ----- R,G,B: 0.29294 0.28568 0.28733
+  </li>
+  <li>
+    k ----- R,G,B: 2.7181 2.3479 1.8333
+  </li>
+</ul>
+</p>
+
+
+      <div align="center">
+          <table style="width=100%">
+            <tr>
+              <td align="middle">
+                <img src="./images/Part2/dragon_mfacet_calcium_0.5alpha.png" width="600px" />
+                <figcaption align="middle">Calcium Dragon</figcaption>
+              </td>
+            </tr>
+          </table>
+      </div>
+
+
+</div>
+</body>
+</html>
