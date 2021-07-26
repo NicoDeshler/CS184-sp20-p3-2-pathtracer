@@ -1,3 +1,5 @@
+The project write-up is at [Project 3: Pathtracer Pt. 2 Write-Up](https://nicodeshler.github.io/CS184-sp20-p3-2-pathtracer/)
+
 <p>
 <img src="https://cs184.eecs.berkeley.edu/cs184_sp17_content/article_images/21_1.jpg" width="800px" />
 </p>
